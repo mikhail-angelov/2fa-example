@@ -1,0 +1,79 @@
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>2FA example</title>
+  </head>
+  <body>
+    <h1>2fa</h1>
+
+    <p id="qr"></p>
+    <p id="token"></p>
+    <div id="progress"></div>
+    <p id="status"></p>
+
+    <form id="form">
+      <input type="text" name="token" placeholder="Enter 2fa code" />
+      <button type="submit">Submit</button>
+    </form>
+
+    <script>
+      const qr = document.getElementById("qr");
+      const token = document.getElementById("token");
+      const status = document.getElementById("status");
+      const progress = document.getElementById("progress");
+      const form = document.getElementById("form");
+
+      const updateUI = ()=>{
+      fetch("http://localhost:3000/generate")
+        .then((response) => response.json())
+        .then((data) => {
+          qr.innerHTML = `<img src="${data.qrCode}">`;
+          token.innerHTML = `Token: ${data.token}`;
+        })
+        .catch((error) => {
+          console.error("Error:", error);
+          status.innerHTML = `Oops, cannot get qr code and token`;
+          status.style.color = "red";
+        });
+      }
+
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+
+        const token = e.target.token.value;
+        if(!token){
+          return;
+        }
+
+
+        fetch("http://localhost:3000/verify", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ token }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            status.innerHTML = `Status: 2FA is passed`;
+            status.style.color = "green";
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+            status.innerHTML = `Status: 2FA is failed`;
+            status.style.color = "red";
+          });
+      });
+      setInterval(()=>{
+        const countDown = new Date().getSeconds() % 30;
+        if(countDown === 0){
+          updateUI();
+        }
+        progress.innerHTML = `Time left: ${30 - countDown} seconds`;
+        console.log(countDown);
+      }, 1000);
+      updateUI();
+    </script>
+  </body>
+</html>
